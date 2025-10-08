@@ -1,93 +1,155 @@
-import React from 'react'
+"use client"
+import React, {useState} from 'react'
+import {useDebounce} from "use-debounce";
 import CourseCard from "@/app/(dashboard)/student/courses/ui/CourseCard";
+import {useCourses} from "@/hooks/useCourses";
 
-const data = [
-    {
-        id: 1,
-        thumbnail: "/1.jpg",
-        title: "Data Science A-Z: Hands-On Exercises & ChatGPT Prize [2025]",
-        description: "Learn Data Science step by step through real Analytics examples. Data Mining, Modeling, Tableau Visualization and more!",
-        category: ["Data Science", "Artificial Intelligent"],
-        instructor: "Kirill Eremenko",
-        duration: "21",
-        lectures: 217,
-        difficulty: "All Levels",
-        price: 1000000,
-        rating: 4.6,
-        status: "Published",
-        reviews: 34693
-    },
-    {
-        id: 2,
-        thumbnail: "/2.jpg",
-        title: "Machine Learning, Data Science & AI Engineering with Python",
-        description: "Complete hands-on deep learning, AI engineering and Generative AI tutorial with data science, Tensorflow, GPT, OpenAI",
-        category: ["Tensorflow", "Artificial Intelligent"],
-        instructor: "Sundog Education by Frank Kane, Frank Kane, Sundog Education Team",
-        duration: "21",
-        lectures: 151,
-        difficulty: "Beginner",
-        price: 2189000,
-        rating: 4.5,
-        status: "Published",
-        reviews: 35715
-    }, {
-        id: 3,
-        thumbnail: "/3.jpg",
-        title: "R Programming A-Z™: R For Data Science With Real Exercises!",
-        description: "Learn Programming In R And R Studio. Data Analytics, Data Science, Statistical Analysis, Packages, Functions, GGPlot2",
-        category: ["Data Science"],
-        instructor: "Kirill Eremenko, SuperDataScience Team, Ligency ​",
-        duration: "10.5",
-        lectures: 79,
-        difficulty: "All Levels",
-        price: 2169000,
-        rating: 4.5,
-        status: "Published",
-        reviews: 56344
-    }, {
-        id: 4,
-        thumbnail: "/4.jpg",
-        title: "Python for Data Science and Machine Learning Bootcamp",
-        description: "Learn how to use NumPy, Pandas, Seaborn , Matplotlib , Plotly , Scikit-Learn , Machine Learning, Tensorflow , and more!",
-        category: ["Data Science", "Machine Learning"],
-        instructor: "Jose Portilla, Pierian Training",
-        duration: "25",
-        lectures: 165,
-        difficulty: "All Levels",
-        price: 1929000,
-        rating: 4.6,
-        status: "Published",
-        reviews: 154155
-    }, {
-        id: 5,
-        thumbnail: "/5.jpg",
-        title: "Data Analysis with Pandas and Python",
-        description: "Analyze data quickly and easily with Python's powerful pandas library! All datasets included. Beginners welcome!",
-        category: ["Data Analyst", "Python"],
-        instructor: "Boris Paskhaver",
-        duration: "19.5",
-        lectures: 141,
-        difficulty: "All Levels",
-        price: 2209000,
-        rating: 4.7,
-        status: "Published",
-        reviews: 25218
-    },
-]
 
 const CoursesBrowser = () => {
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("");
+    const [selectedDifficulty, setSelectedDifficulty] = useState('');
+    const [priceRange, setPriceRange] = useState({min: 0, max: 3000000});
+    const [minRating, setMinRating] = useState(0);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    // Debounce search term to prevent excessive API calls
+    const [debouncedSearch] = useDebounce(searchTerm, 500);
+
+    const {courses, totalPages, isLoading, isError, refreshCourses} = useCourses({
+        search: debouncedSearch || undefined,
+        category: selectedCategory || undefined,
+        difficulty: selectedDifficulty || undefined,
+        minPrice: priceRange.min || undefined,
+        maxPrice: priceRange.max || undefined,
+        minRating: minRating || undefined,
+        page: currentPage,
+        limit: 12, // items per page
+    });
+
+    const handlePageChange = async (page: number) => {
+        setCurrentPage(page);
+        await refreshCourses();
+    };
+
     return (
-        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-            {data && (
-                data.map((item) => (
-                    <CourseCard key={item.id} id={item.id} thumbnail={item.thumbnail} title={item.title}
-                                description={item.description} category={item.category} instructor={item.instructor}
-                                duration={item.duration} difficulty={item.difficulty} price={item.price}
-                                rating={item.rating} status={item.status} reviews={item.reviews}/>
-                ))
+        <div className="space-y-6">
+            {/* Filters */}
+            <div className="space-y-4">
+                {/* Search input */}
+                <input
+                    type="text"
+                    placeholder="Search courses..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-2 border rounded-lg"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Category filter */}
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="p-2 border rounded-lg"
+                    >
+                        <option value="">All Categories</option>
+                        {/* TODO: Map categories from API later */}
+                    </select>
+
+                    {/* Difficulty filter */}
+                    <select
+                        value={selectedDifficulty}
+                        onChange={(e) => setSelectedDifficulty(e.target.value)}
+                        className="p-2 border rounded-lg"
+                    >
+                        <option value="">All Difficulties</option>
+                        {/* TODO: Map difficulties from API later */}
+                    </select>
+
+                    {/* Price range filter */}
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="number"
+                            placeholder="Min price"
+                            value={priceRange.min}
+                            onChange={(e) =>
+                                setPriceRange((prev) => ({
+                                    ...prev,
+                                    min: Number(e.target.value),
+                                }))
+                            }
+                            className="p-2 border rounded-lg w-full"
+                        />
+                        <input
+                            type="number"
+                            placeholder="Max price"
+                            value={priceRange.max}
+                            onChange={(e) =>
+                                setPriceRange((prev) => ({
+                                    ...prev,
+                                    max: Number(e.target.value),
+                                }))
+                            }
+                            className="p-2 border rounded-lg w-full"
+                        />
+                    </div>
+
+                    {/* Rating filter */}
+                    <select
+                        value={minRating}
+                        onChange={(e) => setMinRating(Number(e.target.value))}
+                        className="p-2 border rounded-lg"
+                    >
+                        <option value={0}>All Ratings</option>
+                        <option value={4}>4+ Stars</option>
+                        <option value={4.5}>4.5+ Stars</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Courses list */}
+            {isLoading ? (
+                <div className="mt-4 flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500 mb-4"></div>
+                    <p className="text-lg font-medium text-gray-700">
+                        Loading courses...
+                    </p>
+                </div>
+            ) : isError ? (
+                <div className="text-center text-red-500 mt-6">
+                    Failed to load courses.
+                </div>
+            ) : (
+                <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {courses.length > 0 ? (
+                        courses.map((item) => <CourseCard key={item.id} {...item} />)
+                    ) : (
+                        <div className="col-span-full text-center text-gray-500">
+                            No courses found
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {!isLoading && totalPages > 1 && (
+                <div className="flex justify-center space-x-2 mt-6">
+                    {Array.from({length: totalPages}, (_, i) => (
+                        <button
+                            key={i + 1}
+                            onClick={() => handlePageChange(i + 1)}
+                            className={`px-4 py-2 rounded ${
+                                currentPage === i + 1
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                            }`}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+                </div>
             )}
         </div>
-    )
+    );
 }
 export default CoursesBrowser
